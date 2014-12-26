@@ -9,22 +9,19 @@ update_screen_size();
 $(window).resize(update_screen_size);
 
 var game_elements = [];
+var player_colors = { '-1': 'green', '0': 'red', '1': 'blue' };
 
-var game_element = {
-    position: {
-        x: 100,
-        y: 100,
-    },
-    div: $('<div></div>').css({
+var add_game_element = function(position, element) {
+    var div = $('<div></div>').css({
         position: 'absolute',
-        top: 100,
-        left: 100,
-        height: 25,
-        width: 25,
-        background: 'red'
-    }),
+        top: position.x,
+        left: position.y,
+        height: element.size,
+        width: element.size,
+        background: player_colors[element.player_id],
+    });
+    game_elements.push(element);
+    div.appendTo(canvas);
 };
-game_elements.push(game_element);
 
-game_element.div.appendTo(canvas);
-    
+add_game_element({x: 100, y: 100}, Units.worker(0));
