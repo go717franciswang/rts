@@ -1,29 +1,36 @@
+// game setting
 var canvas = $('#canvas');
+var map = {width: 3000, height: 3000};
+canvas.css({width: map.width, height: map.height});
 var view = $('#view');
 var scroll_rate = 20;
-var offset = {x: 0, y: 0};
 var mouse_x, mouse_y;
-var scroll_timer;
-var map = {width: 3000, height: 3000};
 var offscreen_border = 100;
 var scroll_trigger_border = 50;
-var shift_down = false;
-var SHIFT_KEY_CODE = 16;
 var last_game_element_id = 0;
+var frame_ms = 100;
+var hotkeys = {
+    multi_select: keycodes.SHIFT,
+    action: keycodes.a,
+};
 
-canvas.css({width: map.width, height: map.height});
-
+// game setup
 var update_screen_size = function() {
     var w = $(window);
     view.css({width: w.width()-20, height: w.height()-20});
 };
-
 update_screen_size();
 $(window).resize(update_screen_size);
 
+// in-game variables
+var offset = {x: 0, y: 0};
+var shift_down = false;
+var frames = [];
 var game_elements = {};
 var selections = {};
+var scroll_timer;
 var player_colors = { '-1': 'green', '0': 'red', '1': 'blue' };
+var awaiting_instruction = false;
 
 var add_game_element = function(position, element) {
     var div = $('<div></div>').css({
@@ -48,6 +55,20 @@ add_game_element({x: 100, y: 50}, Buildings.town(0));
 canvas.on('mousedown', function(e) {
     var x0 = e.pageX-offset.x;
     var y0 = e.pageY-offset.y;
+
+    if (awaiting_instruction) {
+        var target = get_selected_element_by_click(x0, y0, game_elements);
+        $.each(game_elements, function(k,v) {
+            if (target) {
+                v.target = target;
+            } else {
+                v.target = { position: { x: x0, y: y0 } };
+            }
+        });
+
+        awaiting_instruction = false;
+        return;
+    }
 
     canvas.one('mouseup', function(e) {
         // when user is holding the shift key, start off with current selection
@@ -100,13 +121,17 @@ $(window).on('mousemove', function(e) {
 });
 
 $(window).on('keydown', function(e) {
-    if (e.keyCode == SHIFT_KEY_CODE) {
+    if (e.keyCode == hotkeys.multi_select) {
         shift_down = true;
+    } else if (e.keyCode == hotkeys.action) {
+        if (!$.isEmptyObject(selections)) {
+            awaiting_instruction = true;
+        }
     }
 });
 
 $(window).on('keyup', function(e) {
-    if (e.keyCode == SHIFT_KEY_CODE) {
+    if (e.keyCode == hotkeys.multi_select) {
         shift_down = false;
     }
 });

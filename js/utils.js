@@ -1,3 +1,8 @@
+var keycodes = {
+    SHIFT: 16,
+    a: 65,
+};
+
 var is_outside_view = function(x, y, view) {
     return x < 10 || x > view.width()-10 || y < 10 || y > view.height()-10;
 };
