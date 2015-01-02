@@ -7,14 +7,15 @@ var distance = function(x0, y0, x1, y1) {
 };
 
 var get_selected_element_by_click = function(x, y, elements) {
-    for (var i = 0; i < elements.length; i++) {
-        var e = elements[i];
-        if (distance(x, y, e.position.x, e.position.y) <= e.size+10) {
-            return e;
+    var found = null;
+    $.each(elements, function(k,v) {
+        if (distance(x, y, v.position.x, v.position.y) <= v.size+10) {
+            found = v;
+            return false;
         }
-    }
+    });
 
-    return null;
+    return found;
 };
 
 var get_selected_elements_by_box = function(x0, y0, x1, y1, elements) {
@@ -29,7 +30,12 @@ var get_selected_elements_by_box = function(x0, y0, x1, y1, elements) {
         return start_x <= x && x <= end_x && start_y <= y && y <= end_y;
     };
 
-    var selected = elements.filter(is_in_selection);
+    var selected = [];
+    $.each(elements, function(k,v) {
+        if (is_in_selection(v)) {
+            selected.push(v);
+        }
+    });
     return selected;
 };
 
@@ -42,6 +48,15 @@ var add_selection_higlighting = function(ele) {
 };
 
 var update_selections = function(cur_selections, new_selections) {
-    cur_selections.map(remove_selection_highlighting);
-    new_selections.map(add_selection_higlighting);
+    $.each(cur_selections, function(k,v) {
+        if (!new_selections[k]) {
+            remove_selection_highlighting(v);
+        }
+    });
+
+    $.each(new_selections, function(k,v) {
+        if (!cur_selections[k]) {
+            add_selection_higlighting(v);
+        }
+    });
 };

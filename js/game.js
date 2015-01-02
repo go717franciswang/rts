@@ -7,6 +7,9 @@ var scroll_timer;
 var map = {width: 3000, height: 3000};
 var offscreen_border = 100;
 var scroll_trigger_border = 50;
+var shift_down = false;
+var SHIFT_KEY_CODE = 16;
+var last_game_element_id = 0;
 
 canvas.css({width: map.width, height: map.height});
 
@@ -18,7 +21,8 @@ var update_screen_size = function() {
 update_screen_size();
 $(window).resize(update_screen_size);
 
-var game_elements = [];
+var game_elements = {};
+var selections = {};
 var player_colors = { '-1': 'green', '0': 'red', '1': 'blue' };
 
 var add_game_element = function(position, element) {
@@ -30,9 +34,10 @@ var add_game_element = function(position, element) {
         width: element.size*2,
         background: player_colors[element.player_id],
     });
+    element.id = ++last_game_element_id;
     element.div = div;
     element.position = position;
-    game_elements.push(element);
+    game_elements[element.id] = element;
     div.appendTo(canvas);
 };
 
@@ -40,14 +45,13 @@ add_game_element({x: 100, y: 100}, Units.worker(0));
 add_game_element({x: 120, y: 100}, Units.worker(0));
 add_game_element({x: 100, y: 50}, Buildings.town(0));
 
-var selections = [];
-
 canvas.on('mousedown', function(e) {
     var x0 = e.pageX-offset.x;
     var y0 = e.pageY-offset.y;
 
     canvas.one('mouseup', function(e) {
-        var elements = [];
+        // when user is holding the shift key, start off with current selection
+        var elements = shift_down ? $.extend({}, selections) : {};
         var x1 = e.pageX-offset.x;
         var y1 = e.pageY-offset.y;
 
@@ -55,11 +59,13 @@ canvas.on('mousedown', function(e) {
         if (distance(x0, y0, x1, y1) < 10) {
             var element = get_selected_element_by_click(x0, y0, game_elements);
             if (element) {
-                elements.push(element);
+                elements[element.id] = element;
             } 
         // box
         } else {
-            elements = get_selected_elements_by_box(x0, y0, x1, y1, game_elements);
+            $.each(get_selected_elements_by_box(x0, y0, x1, y1, game_elements), function(k,v) {
+                elements[v.id] = v;
+            });
         }
 
         update_selections(selections, elements);
@@ -90,5 +96,17 @@ $(window).on('mousemove', function(e) {
     } else {
         clearInterval(scroll_timer);
         scroll_timer = null;
+    }
+});
+
+$(window).on('keydown', function(e) {
+    if (e.keyCode == SHIFT_KEY_CODE) {
+        shift_down = true;
+    }
+});
+
+$(window).on('keyup', function(e) {
+    if (e.keyCode == SHIFT_KEY_CODE) {
+        shift_down = false;
     }
 });
