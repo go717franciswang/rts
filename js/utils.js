@@ -8,7 +8,20 @@ var is_outside_view = function(x, y, view) {
 };
 
 var distance = function(x0, y0, x1, y1) {
-    return Math.sqrt(Math.pow(x1 - x0, 2) + Math.pow(y1 - y0, 2));
+    return Math.sqrt(Math.pow(x1 - x0, 2) + Math.pow(y1 - y0, 2)) || 0;
+};
+
+var unit_vector = function(x0, y0, x1, y1) {
+    var d = distance(x0, y0, x1, y1);
+    if (d == 0) {
+        return { x: 0, y: 0 };
+    } else {
+        return { x: (x1-x0)/d, y: (y1-y0)/d };
+    }
+}
+
+var move_vector = function(start_pos, direction, magnitude) {
+    return { x: start_pos.x+direction.x*magnitude, y: start_pos.y+direction.y*magnitude };
 };
 
 var get_selected_element_by_click = function(x, y, elements) {

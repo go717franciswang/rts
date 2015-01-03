@@ -9,6 +9,7 @@ var offscreen_border = 100;
 var scroll_trigger_border = 50;
 var last_game_element_id = 0;
 var frame_ms = 100;
+var frame_instruction_delay = 2;
 var hotkeys = {
     multi_select: keycodes.SHIFT,
     action: keycodes.a,
@@ -25,7 +26,8 @@ $(window).resize(update_screen_size);
 // in-game variables
 var offset = {x: 0, y: 0};
 var shift_down = false;
-var frames = [];
+var frames = new Array(frame_instruction_delay);
+var current_frame_id;
 var game_elements = {};
 var selections = {};
 var scroll_timer;
@@ -48,6 +50,18 @@ var add_game_element = function(position, element) {
     div.appendTo(canvas);
 };
 
+var update_position = function(position, element) {
+    element.position = position;
+    element.div.css({
+        top: position.y-element.size,
+        left: position.x-element.size,
+    });
+};
+
+var push_to_frame = function(subject_id, verb, object) {
+    frames[current_frame_id + frame_instruction_delay].push([subject_id, verb, object]);
+};
+
 add_game_element({x: 100, y: 100}, Units.worker(0));
 add_game_element({x: 120, y: 100}, Units.worker(0));
 add_game_element({x: 100, y: 50}, Buildings.town(0));
@@ -58,14 +72,15 @@ canvas.on('mousedown', function(e) {
 
     if (awaiting_instruction) {
         var target = get_selected_element_by_click(x0, y0, game_elements);
-        $.each(game_elements, function(k,v) {
+        $.each(selections, function(k,v) {
             if (target) {
-                v.target = target;
+                push_to_frame(k, 'attack', { id: target.id });
             } else {
-                v.target = { position: { x: x0, y: y0 } };
+                push_to_frame(k, 'attack', { position: { x: x0, y: y0 } });
             }
         });
 
+        canvas.css('cursor', 'default');
         awaiting_instruction = false;
         return;
     }
@@ -125,6 +140,7 @@ $(window).on('keydown', function(e) {
         shift_down = true;
     } else if (e.keyCode == hotkeys.action) {
         if (!$.isEmptyObject(selections)) {
+            canvas.css('cursor', 'pointer');
             awaiting_instruction = true;
         }
     }
@@ -135,3 +151,48 @@ $(window).on('keyup', function(e) {
         shift_down = false;
     }
 });
+
+var consume_frame = function(frame_id) {
+    current_frame_id = frame_id;
+
+    // execute frame instructions
+    if (frames[frame_id]) {
+        $.each(frames[frame_id], function(k, instructions) {
+            console.log(instructions);
+            var subject_id = instructions[0];
+            var verb = instructions[1];
+            var object = instructions[2];
+
+            if (game_elements[subject_id] && verb == 'attack') {
+                game_elements[subject_id].target = object;
+            }
+        });
+    }
+
+    // update view
+    $.each(game_elements, function(k, element) {
+        if (element.target && element.movement_speed) {
+            var target = element.target;
+            var target_position;
+            if (target.position) {
+                target_position = target.position
+            } else {
+                target_position = game_elements[target.id].position;
+                console.log(element.id, target.id);
+            } 
+
+            var d = distance(element.position.x, element.position.y, target_position.x, target_position.y);
+            var delta = Math.min(d, element.movement_speed);
+            var direction = unit_vector(element.position.x, element.position.y, target_position.x, target_position.y);
+            var new_pos = move_vector(element.position, direction, delta);
+
+            update_position(new_pos, element);
+        }
+    });
+
+    frames.push([]);
+    setTimeout(function() { consume_frame(frame_id+1) }, frame_ms);
+};
+
+consume_frame(0);
+
