@@ -104,6 +104,10 @@ canvas.on('mousedown', function(e) {
             });
         }
 
+        if ($.isEmptyObject(elements)) {
+            return;
+        }
+
         update_selections(selections, elements);
         selections = elements;
     });
