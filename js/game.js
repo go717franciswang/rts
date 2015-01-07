@@ -14,6 +14,7 @@ var hotkeys = {
     multi_select: keycodes.SHIFT,
     action: keycodes.a,
 };
+var bitmap_scale = 10;
 
 // game setup
 var update_screen_size = function() {
@@ -33,6 +34,7 @@ var selections = {};
 var scroll_timer;
 var player_colors = { '-1': 'green', '0': 'red', '1': 'blue' };
 var awaiting_instruction = false;
+var map_occupancy = new Bitmask(Math.ceil(map.width/bitmap_scale), Math.ceil(map.height/bitmap_scale));
 
 var add_game_element = function(position, element) {
     var div = $('<div></div>').css({
