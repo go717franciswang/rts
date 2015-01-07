@@ -1,13 +1,13 @@
 var Units = {
     base_unit: function() {
         return {
-            size: 5,
+            size: 20,
             attack: 5,
             health: 100,
-            attack_range: 5,
+            attack_range: 30,
             can_gather_resource: false,
             resource_gather_rate: 10,
-            vision: 70,
+            vision: 120,
             movement_speed: 5,
             cost: 50,
             player_id: -1,
@@ -30,7 +30,7 @@ var Units = {
     range: function(player_id) {
         var u = Units.base_unit();
         u.attack = 15;
-        u.attack_range = 40;
+        u.attack_range = 80;
         u.cost = 150;
         u.player_id = player_id;
         return u;

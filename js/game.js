@@ -62,9 +62,9 @@ var push_to_frame = function(subject_id, verb, object) {
     frames[current_frame_id + frame_instruction_delay].push([subject_id, verb, object]);
 };
 
-add_game_element({x: 100, y: 100}, Units.worker(0));
-add_game_element({x: 120, y: 100}, Units.worker(0));
-add_game_element({x: 100, y: 50}, Buildings.town(0));
+add_game_element({x: 200, y: 200}, Buildings.town(0));
+add_game_element({x: 170, y: 350}, Units.worker(0));
+add_game_element({x: 240, y: 350}, Units.worker(0));
 
 canvas.on('mousedown', function(e) {
     var x0 = e.pageX-offset.x;

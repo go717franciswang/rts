@@ -7,10 +7,10 @@ var bond_player = function(f, player_id) {
 var Buildings = {
     base_building: function() {
         return {
-            size: 20,
+            size: 100,
             health: 1000,
             cost: 200,
-            vision: 100,
+            vision: 200,
             is_indestructible: false,
             resource: 0,
             produces: [],
