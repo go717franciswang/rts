@@ -11,6 +11,10 @@ var distance = function(x0, y0, x1, y1) {
     return Math.sqrt(Math.pow(x1 - x0, 2) + Math.pow(y1 - y0, 2)) || 0;
 };
 
+var are_overlapping = function(a, b, distance) {
+    return Math.abs(a.x-b.x) + Math.abs(a.y-b.y) < distance;
+};
+
 var unit_vector = function(x0, y0, x1, y1) {
     var d = distance(x0, y0, x1, y1);
     if (d == 0) {
@@ -77,4 +81,40 @@ var update_selections = function(cur_selections, new_selections) {
             add_selection_higlighting(v);
         }
     });
+};
+
+var generate_fog_of_war = function(map, canvas) {
+    var fog_size = 50;
+    var w_count = Math.ceil(map.width / fog_size);
+    var h_count = Math.ceil(map.height / fog_size);
+    var fogs = [];
+    var base = '<div class="fog" style="background: gray; position: absolute; z-index: 100; width: '+fog_size+'px; height: '+fog_size+'px"></div>';
+
+    for (var i = 0; i < h_count; i++) {
+        var row = [];
+        var y = i * fog_size;
+
+        for (var j = 0; j < w_count; j++) {
+            var x = j * fog_size;
+            var div = $(base).css({ top: y, left: x });
+            div.appendTo(canvas);
+            fogs.push({x: x+fog_size/2, y: y+fog_size/2, div: div});
+        }
+    }
+
+    return {
+        fogs: new kdTree(fogs, function(a,b) {
+            return Math.pow(a.x-b.x,2)+Math.pow(a.y-b.y,2);
+        }, ["x", "y"]),
+        hide_all: function() {
+            $('.fog').show();
+        },
+        reveal_circle: function(position, radius) {
+            var found = this.fogs.nearest(position, 100, radius*radius);
+            $.each(found, function(i, v) {
+                var fog = v[0].div;
+                fog.hide();
+            });
+        }
+    };
 };

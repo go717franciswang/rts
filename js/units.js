@@ -7,8 +7,8 @@ var Units = {
             attack_range: 30,
             can_gather_resource: false,
             resource_gather_rate: 10,
-            vision: 120,
-            movement_speed: 5,
+            vision: 200,
+            movement_speed: 15,
             cost: 50,
             player_id: -1,
         };

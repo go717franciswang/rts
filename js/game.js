@@ -1,13 +1,13 @@
 // game setting
 var canvas = $('#canvas');
-var map = {width: 3000, height: 3000};
+var map = {width: 1000, height: 500};
 canvas.css({width: map.width, height: map.height});
 var view = $('#view');
 var scroll_rate = 20;
 var mouse_x, mouse_y;
 var offscreen_border = 100;
 var scroll_trigger_border = 50;
-var last_game_element_id = 0;
+var last_game_element_id = -1;
 var frame_ms = 100;
 var frame_instruction_delay = 2;
 var hotkeys = {
@@ -29,16 +29,17 @@ var offset = {x: 0, y: 0};
 var shift_down = false;
 var frames = new Array(frame_instruction_delay);
 var current_frame_id;
-var game_elements = {};
+var game_elements = [];
 var selections = {};
 var scroll_timer;
 var player_colors = { '-1': 'green', '0': 'red', '1': 'blue' };
 var awaiting_instruction = false;
-var map_occupancy = new Bitmask(Math.ceil(map.width/bitmap_scale), Math.ceil(map.height/bitmap_scale));
+var player_id = 0;
+
+var fog_of_war = generate_fog_of_war(map, canvas);
 
 var add_game_element = function(position, element) {
-    var div = $('<div></div>').css({
-        position: 'absolute',
+    var div = $('<div style="position: absolute; z-index: 10"></div>').css({
         top: position.y-element.size,
         left: position.x-element.size,
         height: element.size*2,
@@ -175,6 +176,13 @@ var consume_frame = function(frame_id) {
         });
     }
 
+    // create map occupancy
+    var map_occupancy = new kdTree(game_elements, function(a,b) {
+        return Math.pow(a.x-b.x,2)+Math.pow(a.y-b.y,2);
+    }, ["position.x", "position.y"]);
+
+    fog_of_war.hide_all();
+
     // update view
     $.each(game_elements, function(k, element) {
         if (element.target && element.movement_speed) {
@@ -192,7 +200,23 @@ var consume_frame = function(frame_id) {
             var direction = unit_vector(element.position.x, element.position.y, target_position.x, target_position.y);
             var new_pos = move_vector(element.position, direction, delta);
 
-            update_position(new_pos, element);
+            var neighbors = map_occupancy.nearest(new_pos, Math.min(5, game_elements.length));
+            var occupied = false;
+            $.each(neighbors, function(i, n) {
+                var e = n[0];
+                if (e.id != element.id && are_overlapping(e.position, new_pos, e.size+element.size)) {
+                    occupied = true;
+                    return;
+                }
+            });
+
+            if (!occupied) {
+                update_position(new_pos, element);
+            }
+        }
+
+        if (element.player_id == player_id) {
+            fog_of_war.reveal_circle(element.position, element.vision);
         }
     });
 

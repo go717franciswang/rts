@@ -1,0 +1,3 @@
+[submodule "js/kd-tree-javascript"]
+	path = js/kd-tree-javascript
+	url = https://github.com/ubilabs/kd-tree-javascript

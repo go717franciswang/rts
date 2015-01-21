@@ -10,7 +10,7 @@ var Buildings = {
             size: 100,
             health: 1000,
             cost: 200,
-            vision: 200,
+            vision: 400,
             is_indestructible: false,
             resource: 0,
             produces: [],
