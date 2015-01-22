@@ -84,7 +84,7 @@ var update_selections = function(cur_selections, new_selections) {
 };
 
 var generate_fog_of_war = function(map, canvas) {
-    var fog_size = 50;
+    var fog_size = 25;
     var w_count = Math.ceil(map.width / fog_size);
     var h_count = Math.ceil(map.height / fog_size);
     var fogs = [];
@@ -110,7 +110,7 @@ var generate_fog_of_war = function(map, canvas) {
             $('.fog').show();
         },
         reveal_circle: function(position, radius) {
-            var found = this.fogs.nearest(position, 100, radius*radius);
+            var found = this.fogs.nearest(position, 1000, radius*radius);
             $.each(found, function(i, v) {
                 var fog = v[0].div;
                 fog.hide();

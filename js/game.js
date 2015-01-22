@@ -68,6 +68,7 @@ var push_to_frame = function(subject_id, verb, object) {
 add_game_element({x: 200, y: 200}, Buildings.town(0));
 add_game_element({x: 170, y: 350}, Units.worker(0));
 add_game_element({x: 240, y: 350}, Units.worker(0));
+add_game_element({x: 700, y: 350}, Units.worker(1));
 
 canvas.on('mousedown', function(e) {
     var x0 = e.pageX-offset.x;
@@ -76,6 +77,8 @@ canvas.on('mousedown', function(e) {
     if (awaiting_instruction) {
         var target = get_selected_element_by_click(x0, y0, game_elements);
         $.each(selections, function(k,v) {
+            if (v.player_id != player_id) return;
+
             if (target) {
                 push_to_frame(k, 'attack', { id: target.id });
             } else {
@@ -160,6 +163,10 @@ $(window).on('keyup', function(e) {
 });
 
 var consume_frame = function(frame_id) {
+    if (frame_id % 100 == 0) {
+        console.log('consuming frame: ' + frame_id);
+    }
+
     current_frame_id = frame_id;
 
     // execute frame instructions
@@ -192,7 +199,6 @@ var consume_frame = function(frame_id) {
                 target_position = target.position
             } else {
                 target_position = game_elements[target.id].position;
-                console.log(element.id, target.id);
             } 
 
             var d = distance(element.position.x, element.position.y, target_position.x, target_position.y);
