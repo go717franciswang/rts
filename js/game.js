@@ -29,12 +29,13 @@ var offset = {x: 0, y: 0};
 var shift_down = false;
 var frames = new Array(frame_instruction_delay);
 var current_frame_id;
-var game_elements = [];
+var game_elements = {};
 var selections = {};
 var scroll_timer;
 var player_colors = { '-1': 'green', '0': 'red', '1': 'blue' };
 var awaiting_instruction = false;
 var player_id = 0;
+var live_element_count = 0;
 
 var fog_of_war = generate_fog_of_war(map, canvas);
 
@@ -47,6 +48,7 @@ var add_game_element = function(position, element) {
         background: player_colors[element.player_id],
     });
     element.id = ++last_game_element_id;
+    live_element_count++;
     element.div = div;
     element.position = position;
     game_elements[element.id] = element;
@@ -162,12 +164,18 @@ $(window).on('keyup', function(e) {
     }
 });
 
+var attack_element = function(element, attack_amount) {
+    element.health -= attack_amount;
+    element.div.css({ opacity: element.health / element.max_health });
+};
+
 var consume_frame = function(frame_id) {
     if (frame_id % 100 == 0) {
         console.log('consuming frame: ' + frame_id);
     }
 
     current_frame_id = frame_id;
+    var elements_to_delete = [];
 
     // execute frame instructions
     if (frames[frame_id]) {
@@ -184,8 +192,8 @@ var consume_frame = function(frame_id) {
     }
 
     // create map occupancy
-    var map_occupancy = new kdTree(game_elements, function(a,b) {
-        return Math.pow(a.x-b.x,2)+Math.pow(a.y-b.y,2);
+    var map_occupancy = new kdTree($.map(game_elements, function(e) { return e; }), function(a,b) {
+        return Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
     }, ["position.x", "position.y"]);
 
     fog_of_war.hide_all();
@@ -194,36 +202,85 @@ var consume_frame = function(frame_id) {
     $.each(game_elements, function(k, element) {
         if (element.target && element.movement_speed) {
             var target = element.target;
-            var target_position;
-            if (target.position) {
-                target_position = target.position
+            var made_action = false;
+
+            // target no longer exist
+            if (target.id && game_elements[target.id] == undefined) {
+                delete element.target;
             } else {
-                target_position = game_elements[target.id].position;
-            } 
 
-            var d = distance(element.position.x, element.position.y, target_position.x, target_position.y);
-            var delta = Math.min(d, element.movement_speed);
-            var direction = unit_vector(element.position.x, element.position.y, target_position.x, target_position.y);
-            var new_pos = move_vector(element.position, direction, delta);
+                // target is an absolute point, and enemy around
+                if (target.position) {
+                    var neighbors = map_occupancy.nearest(element.position, Math.min(5, live_element_count));
+                    $.each(neighbors, function(i, n) {
+                        var e = n[0];
+                        if (e.player_id != player_id 
+                            && dist(element.position, e.position) < element.attack_range+element.size+e.size) {
+                            attack_element(e, element.attack);
+                            made_action = true;
 
-            var neighbors = map_occupancy.nearest(new_pos, Math.min(5, game_elements.length));
-            var occupied = false;
-            $.each(neighbors, function(i, n) {
-                var e = n[0];
-                if (e.id != element.id && are_overlapping(e.position, new_pos, e.size+element.size)) {
-                    occupied = true;
-                    return;
+                            if (e.health < 0) {
+                                elements_to_delete.push(e.id);
+                            }
+                            return false;
+                        }
+                    });
+                } else if (target.player_id != player_id) {
+                // target is specific game object, and is around
+                    var neighbors = map_occupancy.nearest(element.position, Math.min(5, live_element_count));
+                    $.each(neighbors, function(i, n) {
+                        var e = n[0];
+                        if (e.id == target.id) {
+                            if (dist(element.position, e.position) < element.attack_range+element.size+e.size) {
+                                attack_element(e, element.attack);
+                                if (e.health < 0) {
+                                    elements_to_delete.push(e.id);
+                                }
+                                made_action = true;
+                                return false;
+                            }
+                        }
+                    });
                 }
-            });
 
-            if (!occupied) {
-                update_position(new_pos, element);
+                if (!made_action) {
+                    var target_position;
+                    if (target.position) {
+                        target_position = target.position
+                    } else {
+                        target_position = game_elements[target.id].position;
+                    } 
+
+                    var d = distance(element.position.x, element.position.y, target_position.x, target_position.y);
+                    var delta = Math.min(d, element.movement_speed);
+                    var direction = unit_vector(element.position.x, element.position.y, target_position.x, target_position.y);
+                    var new_pos = move_vector(element.position, direction, delta);
+
+                    var neighbors = map_occupancy.nearest(new_pos, Math.min(5, live_element_count));
+                    var occupied = false;
+                    $.each(neighbors, function(i, n) {
+                        var e = n[0];
+                        if (e.id != element.id && are_overlapping(e.position, new_pos, e.size+element.size)) {
+                            occupied = true;
+                            return;
+                        }
+                    });
+
+                    if (!occupied) {
+                        update_position(new_pos, element);
+                    }
+                }
             }
         }
 
         if (element.player_id == player_id) {
             fog_of_war.reveal_circle(element.position, element.vision);
         }
+    });
+    
+    $.each(elements_to_delete.sort().reverse(), function(i, id) {
+        delete game_elements[id];
+        live_element_count--;
     });
 
     frames.push([]);

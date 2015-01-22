@@ -9,6 +9,7 @@ var Buildings = {
         return {
             size: 100,
             health: 1000,
+            max_health: 1000,
             cost: 200,
             vision: 400,
             is_indestructible: false,

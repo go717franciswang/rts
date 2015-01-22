@@ -4,7 +4,8 @@ var Units = {
             size: 20,
             attack: 5,
             health: 100,
-            attack_range: 30,
+            max_health: 100,
+            attack_range: 10,
             can_gather_resource: false,
             resource_gather_rate: 10,
             vision: 200,
@@ -23,6 +24,7 @@ var Units = {
         var u = Units.base_unit();
         u.attack = 25;
         u.health = 200;
+        u.max_health = 200;
         u.cost = 100;
         u.player_id = player_id;
         return u;

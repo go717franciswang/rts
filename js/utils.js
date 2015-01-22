@@ -11,6 +11,10 @@ var distance = function(x0, y0, x1, y1) {
     return Math.sqrt(Math.pow(x1 - x0, 2) + Math.pow(y1 - y0, 2)) || 0;
 };
 
+var dist = function(pos_a, pos_b) {
+    return distance(pos_a.x, pos_a.y, pos_b.x, pos_b.y);
+};
+
 var are_overlapping = function(a, b, distance) {
     return Math.abs(a.x-b.x) + Math.abs(a.y-b.y) < distance;
 };
