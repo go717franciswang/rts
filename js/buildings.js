@@ -1,39 +1,39 @@
-var bond_player = function(f, player_id) {
+var bondPlayer = function(f, playerId) {
     return function() { 
-        return f(player_id);
+        return f(playerId);
     };
 };
 
 var Buildings = {
-    base_building: function() {
+    baseBuilding: function() {
         return {
             size: 100,
             health: 1000,
-            max_health: 1000,
+            maxHealth: 1000,
             cost: 200,
             vision: 400,
-            is_indestructible: false,
+            isIndestructible: false,
             resource: 0,
             produces: [],
-            player_id: -1,
+            playerId: -1,
         };
     },
-    town: function(player_id) {
-        var b = Buildings.base_building();
-        b.produces.push(bond_player(Units.worker, player_id));
-        b.player_id = player_id;
+    town: function(playerId) {
+        var b = Buildings.baseBuilding();
+        b.produces.push(bondPlayer(Units.worker, playerId));
+        b.playerId = playerId;
         return b;
     },
-    barrack: function(player_id) {
-        var b = Buildings.base_building();
-        b.produces.push(bond_player(Units.melee, player_id));
-        b.produces.push(bond_player(Units.range, player_id));
-        b.player_id = player_id;
+    barrack: function(playerId) {
+        var b = Buildings.baseBuilding();
+        b.produces.push(bondPlayer(Units.melee, playerId));
+        b.produces.push(bondPlayer(Units.range, playerId));
+        b.playerId = playerId;
         return b;
     },
     mine: function() {
-        var b = Buildings.base_building();
-        b.is_indestructible = true;
+        var b = Buildings.baseBuilding();
+        b.isIndestructible = true;
         b.resource = 2000;
         return b;
     },

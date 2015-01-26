@@ -3,59 +3,59 @@ var canvas = $('#canvas');
 var map = {width: 1000, height: 500};
 canvas.css({width: map.width, height: map.height});
 var view = $('#view');
-var scroll_rate = 20;
-var mouse_x, mouse_y;
-var offscreen_border = 100;
-var scroll_trigger_border = 50;
-var last_game_element_id = -1;
-var frame_ms = 100;
-var frame_instruction_delay = 2;
+var scrollRate = 20;
+var mouseX, mouseY;
+var offscreenBorder = 100;
+var scrollTriggerBorder = 50;
+var lastGameElementId = -1;
+var frameMs = 100;
+var frameInstructionDelay = 2;
 var hotkeys = {
-    multi_select: keycodes.SHIFT,
+    multiSelect: keycodes.SHIFT,
     action: keycodes.a,
 };
-var bitmap_scale = 10;
+var bitmapScale = 10;
 
 // game setup
-var update_screen_size = function() {
+var updateScreenSize = function() {
     var w = $(window);
     view.css({width: w.width()-20, height: w.height()-20});
 };
-update_screen_size();
-$(window).resize(update_screen_size);
+updateScreenSize();
+$(window).resize(updateScreenSize);
 
 // in-game variables
 var offset = {x: 0, y: 0};
-var shift_down = false;
-var frames = new Array(frame_instruction_delay);
-var current_frame_id;
-var game_elements = {};
+var shiftDown = false;
+var frames = new Array(frameInstructionDelay);
+var currentFrameId;
+var gameElements = {};
 var selections = {};
-var scroll_timer;
-var player_colors = { '-1': 'green', '0': 'red', '1': 'blue' };
-var awaiting_instruction = false;
-var player_id = 0;
-var live_element_count = 0;
+var scrollTimer;
+var playerColors = { '-1': 'green', '0': 'red', '1': 'blue' };
+var awaitingInstruction = false;
+var playerId = 0;
+var liveElementCount = 0;
 
-var fog_of_war = generate_fog_of_war(map, canvas);
+var fogOfWar = generateFogOfWar(map, canvas);
 
-var add_game_element = function(position, element) {
+var addGameElement = function(position, element) {
     var div = $('<div style="position: absolute; z-index: 10"></div>').css({
         top: position.y-element.size,
         left: position.x-element.size,
         height: element.size*2,
         width: element.size*2,
-        background: player_colors[element.player_id],
+        background: playerColors[element.playerId],
     });
-    element.id = ++last_game_element_id;
-    live_element_count++;
+    element.id = ++lastGameElementId;
+    liveElementCount++;
     element.div = div;
     element.position = position;
-    game_elements[element.id] = element;
+    gameElements[element.id] = element;
     div.appendTo(canvas);
 };
 
-var update_position = function(position, element) {
+var updatePosition = function(position, element) {
     element.position = position;
     element.div.css({
         top: position.y-element.size,
@@ -63,51 +63,51 @@ var update_position = function(position, element) {
     });
 };
 
-var push_to_frame = function(subject_id, verb, object) {
-    frames[current_frame_id + frame_instruction_delay].push([subject_id, verb, object]);
+var pushToFrame = function(subjectId, verb, object) {
+    frames[currentFrameId + frameInstructionDelay].push([subjectId, verb, object]);
 };
 
-add_game_element({x: 200, y: 200}, Buildings.town(0));
-add_game_element({x: 170, y: 350}, Units.worker(0));
-add_game_element({x: 240, y: 350}, Units.worker(0));
-add_game_element({x: 700, y: 350}, Units.worker(1));
+addGameElement({x: 200, y: 200}, Buildings.town(0));
+addGameElement({x: 170, y: 350}, Units.worker(0));
+addGameElement({x: 240, y: 350}, Units.worker(0));
+addGameElement({x: 700, y: 350}, Units.worker(1));
 
 canvas.on('mousedown', function(e) {
     var x0 = e.pageX-offset.x;
     var y0 = e.pageY-offset.y;
 
-    if (awaiting_instruction) {
-        var target = get_selected_element_by_click(x0, y0, game_elements);
+    if (awaitingInstruction) {
+        var target = getSelectedElementByClick(x0, y0, gameElements);
         $.each(selections, function(k,v) {
-            if (v.player_id != player_id) return;
+            if (v.playerId != playerId) return;
 
             if (target) {
-                push_to_frame(k, 'attack', { id: target.id });
+                pushToFrame(k, 'attack', { id: target.id });
             } else {
-                push_to_frame(k, 'attack', { position: { x: x0, y: y0 } });
+                pushToFrame(k, 'attack', { position: { x: x0, y: y0 } });
             }
         });
 
         canvas.css('cursor', 'default');
-        awaiting_instruction = false;
+        awaitingInstruction = false;
         return;
     }
 
     canvas.one('mouseup', function(e) {
         // when user is holding the shift key, start off with current selection
-        var elements = shift_down ? $.extend({}, selections) : {};
+        var elements = shiftDown ? $.extend({}, selections) : {};
         var x1 = e.pageX-offset.x;
         var y1 = e.pageY-offset.y;
 
         // click
         if (distance(x0, y0, x1, y1) < 10) {
-            var element = get_selected_element_by_click(x0, y0, game_elements);
+            var element = getSelectedElementByClick(x0, y0, gameElements);
             if (element) {
                 elements[element.id] = element;
             } 
         // box
         } else {
-            $.each(get_selected_elements_by_box(x0, y0, x1, y1, game_elements), function(k,v) {
+            $.each(getSelectedElementsByBox(x0, y0, x1, y1, gameElements), function(k,v) {
                 elements[v.id] = v;
             });
         }
@@ -116,176 +116,176 @@ canvas.on('mousedown', function(e) {
             return;
         }
 
-        update_selections(selections, elements);
+        updateSelections(selections, elements);
         selections = elements;
     });
 });
 
 $(window).on('mousemove', function(e) {
-    mouse_x = e.pageX;
-    mouse_y = e.pageY;
-    if (is_outside_view(mouse_x, mouse_y, view)) {
-        if (!scroll_timer) {
-            scroll_timer = setInterval(function() {
-                if (mouse_x < scroll_trigger_border && offset.x < offscreen_border) {
-                    offset.x += scroll_rate;
-                } else if (mouse_x > view.width()-scroll_trigger_border && 
-                           offset.x > -(map.width+offscreen_border-view.width())) {
-                    offset.x -= scroll_rate;
-                } else if (mouse_y < scroll_trigger_border && offset.y < offscreen_border) {
-                    offset.y += scroll_rate;
-                } else if (mouse_y > view.height()-scroll_trigger_border && 
-                           offset.y > -(map.height+offscreen_border-view.height())) {
-                    offset.y -= scroll_rate;
+    mouseX = e.pageX;
+    mouseY = e.pageY;
+    if (isOutsideView(mouseX, mouseY, view)) {
+        if (!scrollTimer) {
+            scrollTimer = setInterval(function() {
+                if (mouseX < scrollTriggerBorder && offset.x < offscreenBorder) {
+                    offset.x += scrollRate;
+                } else if (mouseX > view.width()-scrollTriggerBorder && 
+                           offset.x > -(map.width+offscreenBorder-view.width())) {
+                    offset.x -= scrollRate;
+                } else if (mouseY < scrollTriggerBorder && offset.y < offscreenBorder) {
+                    offset.y += scrollRate;
+                } else if (mouseY > view.height()-scrollTriggerBorder && 
+                           offset.y > -(map.height+offscreenBorder-view.height())) {
+                    offset.y -= scrollRate;
                 }
                 canvas.css({top: offset.y, left: offset.x});
             }, 20);
         }
     } else {
-        clearInterval(scroll_timer);
-        scroll_timer = null;
+        clearInterval(scrollTimer);
+        scrollTimer = null;
     }
 });
 
 $(window).on('keydown', function(e) {
-    if (e.keyCode == hotkeys.multi_select) {
-        shift_down = true;
+    if (e.keyCode == hotkeys.multiSelect) {
+        shiftDown = true;
     } else if (e.keyCode == hotkeys.action) {
         if (!$.isEmptyObject(selections)) {
             canvas.css('cursor', 'pointer');
-            awaiting_instruction = true;
+            awaitingInstruction = true;
         }
     }
 });
 
 $(window).on('keyup', function(e) {
-    if (e.keyCode == hotkeys.multi_select) {
-        shift_down = false;
+    if (e.keyCode == hotkeys.multiSelect) {
+        shiftDown = false;
     }
 });
 
-var attack_element = function(element, attack_amount) {
-    element.health -= attack_amount;
-    element.div.css({ opacity: element.health / element.max_health });
+var attackElement = function(element, attackAmount) {
+    element.health -= attackAmount;
+    element.div.css({ opacity: element.health / element.maxHealth });
 };
 
-var consume_frame = function(frame_id) {
-    if (frame_id % 100 == 0) {
-        console.log('consuming frame: ' + frame_id);
+var consumeFrame = function(frameId) {
+    if (frameId % 100 == 0) {
+        console.log('consuming frame: ' + frameId);
     }
 
-    current_frame_id = frame_id;
-    var elements_to_delete = [];
+    currentFrameId = frameId;
+    var elementsToDelete = [];
 
     // execute frame instructions
-    if (frames[frame_id]) {
-        $.each(frames[frame_id], function(k, instructions) {
+    if (frames[frameId]) {
+        $.each(frames[frameId], function(k, instructions) {
             console.log(instructions);
-            var subject_id = instructions[0];
+            var subjectId = instructions[0];
             var verb = instructions[1];
             var object = instructions[2];
 
-            if (game_elements[subject_id] && verb == 'attack') {
-                game_elements[subject_id].target = object;
+            if (gameElements[subjectId] && verb == 'attack') {
+                gameElements[subjectId].target = object;
             }
         });
     }
 
     // create map occupancy
-    var map_occupancy = new kdTree($.map(game_elements, function(e) { return e; }), function(a,b) {
+    var mapOccupancy = new kdTree($.map(gameElements, function(e) { return e; }), function(a,b) {
         return Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
     }, ["position.x", "position.y"]);
 
-    fog_of_war.hide_all();
+    fogOfWar.hideAll();
 
     // update view
-    $.each(game_elements, function(k, element) {
-        if (element.target && element.movement_speed) {
+    $.each(gameElements, function(k, element) {
+        if (element.target && element.movementSpeed) {
             var target = element.target;
-            var made_action = false;
+            var madeAction = false;
 
             // target no longer exist
-            if (target.id && game_elements[target.id] == undefined) {
+            if (target.id && gameElements[target.id] == undefined) {
                 delete element.target;
             } else {
 
                 // target is an absolute point, and enemy around
                 if (target.position) {
-                    var neighbors = map_occupancy.nearest(element.position, Math.min(5, live_element_count));
+                    var neighbors = mapOccupancy.nearest(element.position, Math.min(5, liveElementCount));
                     $.each(neighbors, function(i, n) {
                         var e = n[0];
-                        if (e.player_id != player_id 
-                            && dist(element.position, e.position) < element.attack_range+element.size+e.size) {
-                            attack_element(e, element.attack);
-                            made_action = true;
+                        if (e.playerId != playerId 
+                            && dist(element.position, e.position) < element.attackRange+element.size+e.size) {
+                            attackElement(e, element.attack);
+                            madeAction = true;
 
                             if (e.health < 0) {
-                                elements_to_delete.push(e.id);
+                                elementsToDelete.push(e.id);
                             }
                             return false;
                         }
                     });
-                } else if (target.player_id != player_id) {
+                } else if (target.playerId != playerId) {
                 // target is specific game object, and is around
-                    var neighbors = map_occupancy.nearest(element.position, Math.min(5, live_element_count));
+                    var neighbors = mapOccupancy.nearest(element.position, Math.min(5, liveElementCount));
                     $.each(neighbors, function(i, n) {
                         var e = n[0];
                         if (e.id == target.id) {
-                            if (dist(element.position, e.position) < element.attack_range+element.size+e.size) {
-                                attack_element(e, element.attack);
+                            if (dist(element.position, e.position) < element.attackRange+element.size+e.size) {
+                                attackElement(e, element.attack);
                                 if (e.health < 0) {
-                                    elements_to_delete.push(e.id);
+                                    elementsToDelete.push(e.id);
                                 }
-                                made_action = true;
+                                madeAction = true;
                                 return false;
                             }
                         }
                     });
                 }
 
-                if (!made_action) {
-                    var target_position;
+                if (!madeAction) {
+                    var targetPosition;
                     if (target.position) {
-                        target_position = target.position
+                        targetPosition = target.position
                     } else {
-                        target_position = game_elements[target.id].position;
+                        targetPosition = gameElements[target.id].position;
                     } 
 
-                    var d = distance(element.position.x, element.position.y, target_position.x, target_position.y);
-                    var delta = Math.min(d, element.movement_speed);
-                    var direction = unit_vector(element.position.x, element.position.y, target_position.x, target_position.y);
-                    var new_pos = move_vector(element.position, direction, delta);
+                    var d = distance(element.position.x, element.position.y, targetPosition.x, targetPosition.y);
+                    var delta = Math.min(d, element.movementSpeed);
+                    var direction = unitVector(element.position.x, element.position.y, targetPosition.x, targetPosition.y);
+                    var newPos = moveVector(element.position, direction, delta);
 
-                    var neighbors = map_occupancy.nearest(new_pos, Math.min(5, live_element_count));
+                    var neighbors = mapOccupancy.nearest(newPos, Math.min(5, liveElementCount));
                     var occupied = false;
                     $.each(neighbors, function(i, n) {
                         var e = n[0];
-                        if (e.id != element.id && are_overlapping(e.position, new_pos, e.size+element.size)) {
+                        if (e.id != element.id && areOverlapping(e.position, newPos, e.size+element.size)) {
                             occupied = true;
                             return;
                         }
                     });
 
                     if (!occupied) {
-                        update_position(new_pos, element);
+                        updatePosition(newPos, element);
                     }
                 }
             }
         }
 
-        if (element.player_id == player_id) {
-            fog_of_war.reveal_circle(element.position, element.vision);
+        if (element.playerId == playerId) {
+            fogOfWar.revealCircle(element.position, element.vision);
         }
     });
     
-    $.each(elements_to_delete.sort().reverse(), function(i, id) {
-        delete game_elements[id];
-        live_element_count--;
+    $.each(elementsToDelete.sort().reverse(), function(i, id) {
+        delete gameElements[id];
+        liveElementCount--;
     });
 
     frames.push([]);
-    setTimeout(function() { consume_frame(frame_id+1) }, frame_ms);
+    setTimeout(function() { consumeFrame(frameId+1) }, frameMs);
 };
 
-consume_frame(0);
+consumeFrame(0);
 

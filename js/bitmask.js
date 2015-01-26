@@ -21,39 +21,39 @@ Bitmask.prototype.set = function(x, y, bit) {
     }
 };
 
-var ScaledBitmask = function(width, height, scaling_factor) {
+var ScaledBitmask = function(width, height, scalingFactor) {
     this.width = width;
     this.height = height;
-    this.scaling_factor = scaling_factor;
-    this.bitmask = new Bitmask(Math.ceil(width/scaling_factor), Math.ceil(height/scaling_factor));
+    this.scalingFactor = scalingFactor;
+    this.bitmask = new Bitmask(Math.ceil(width/scalingFactor), Math.ceil(height/scalingFactor));
 };
 
 ScaledBitmask.prototype.get = function(x, y) {
-    return this.bitmask.get(Math.round(x/this.scaling_factor), Math.round(y/this.scaling_factor));
+    return this.bitmask.get(Math.round(x/this.scalingFactor), Math.round(y/this.scalingFactor));
 };
 
 ScaledBitmask.prototype.set = function(x, y, bit) {
-    this.bitmask.set(Math.round(x/this.scaling_factor), Math.round(y/this.scaling_factor), 1);
+    this.bitmask.set(Math.round(x/this.scalingFactor), Math.round(y/this.scalingFactor), 1);
 };
 
-ScaledBitmask.prototype.set_area = function(x, y, bit, size) {
-    var x_ = Math.round(x/this.scaling_factor);
-    var y_ = Math.round(y/this.scaling_factor);
-    var scaled_size = Math.round(size/this.scaled_size);
+ScaledBitmask.prototype.setArea = function(x, y, bit, size) {
+    var x_ = Math.round(x/this.scalingFactor);
+    var y_ = Math.round(y/this.scalingFactor);
+    var scaledSize = Math.round(size/this.scaledSize);
 
-    for (var dx = -scaled_size; dx <= scaled_size; dx++) {
-        var x__ = x_ + dx;
-        if (x__ < 0 || x__ >= this.bitmask.width) {
+    for (var dx = -scaledSize; dx <= scaledSize; dx++) {
+        var x_ = x_ + dx;
+        if (x_ < 0 || x_ >= this.bitmask.width) {
             continue;
         }
 
-        for (var dy = -scaled_size; dy <= scaled_size; dy++) {
-            var y__ = y_ + dy;
-            if (y__ < 0 || y__ >= this.bitmask.height) {
+        for (var dy = -scaledSize; dy <= scaledSize; dy++) {
+            var y_ = y_ + dy;
+            if (y_ < 0 || y_ >= this.bitmask.height) {
                 continue;
             }
 
-            this.bitmask.set(x__, y__, bit);
+            this.bitmask.set(x_, y_, bit);
         }
     }
 };
